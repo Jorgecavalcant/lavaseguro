@@ -1,2 +1,2 @@
 # STATE.min
-JWT operador: OK (HS256 via /auth/pin, Bearer+X-Pin compat, mutações ainda opcionais p/ não quebrar test_api). Payments: manual + stubs pix_manual/cartao_pos no registry, charge pluggable, sem Asaas. Próximo: forçar auth nas mutações → deploy após DNS / provedores reais.
+JWT operador: OK (HS256 via /auth/pin, Bearer+X-Pin compat). Auth OBRIGATÓRIA nas mutações: atendimentos (create/status), payments (charge/stub), servicos CRUD, lavadores CRUD, reclamações criar — via Depends(get_current_lavador). Abertos: GETs, seed, health, providers, caixa, pin-do-dia, auth/pin. Payments: manual + stubs pix_manual/cartao_pos no registry, charge pluggable, sem Asaas. Próximo: deploy após DNS / provedores reais.

@@ -3,16 +3,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth_jwt import get_current_lavador
 from app.database import get_db
 from app.models import Atendimento, Servico, StatusAtendimento
 from app.payments.provider import ChargeRequest, get_provider, list_providers
 from app.schemas import AtendimentoOut, PaymentChargeIn, ProvidersOut
 
 router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
-
-# Nota: mutações aqui NÃO forçam Depends(get_current_lavador) para manter os
-# 4 testes do test_api existentes passando. A web envia JWT via Bearer nas
-# chamadas; a proteção obrigatória entra quando o frontend estiver alinhado.
 
 
 @router.get("/providers", response_model=ProvidersOut)
@@ -22,7 +19,11 @@ def providers():
 
 
 @router.post("/charge", response_model=AtendimentoOut)
-def charge(body: PaymentChargeIn, db: Session = Depends(get_db)):
+def charge(
+    body: PaymentChargeIn,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     """Registra cobrança via provedor configurável (cliente escolhe o adquirente)."""
     row = db.get(Atendimento, body.atendimento_id)
     if not row:
@@ -61,6 +62,10 @@ def charge(body: PaymentChargeIn, db: Session = Depends(get_db)):
 
 
 @router.post("/stub", response_model=AtendimentoOut, deprecated=True)
-def payment_stub(body: PaymentChargeIn, db: Session = Depends(get_db)):
+def payment_stub(
+    body: PaymentChargeIn,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     """Alias legado de /charge (MVP manual). Preferir POST /charge."""
     return charge(body, db)

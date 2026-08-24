@@ -6,7 +6,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth_jwt import create_access_token
+from app.auth_jwt import create_access_token, get_current_lavador
 from app.database import get_db
 from app.models import Lavador, PinDia
 from app.schemas import AuthPinIn, AuthPinOut, LavadorCreate, LavadorOut, LavadorUpdate, PinDiaOut
@@ -20,7 +20,11 @@ def list_lavadores(db: Session = Depends(get_db)):
 
 
 @router.post("/lavadores", response_model=LavadorOut, status_code=201)
-def create_lavador(body: LavadorCreate, db: Session = Depends(get_db)):
+def create_lavador(
+    body: LavadorCreate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = Lavador(nome=body.nome, comissao_pct=body.comissao_pct)
     db.add(row)
     db.commit()
@@ -37,7 +41,12 @@ def get_lavador(lavador_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/lavadores/{lavador_id}", response_model=LavadorOut)
-def update_lavador(lavador_id: int, body: LavadorUpdate, db: Session = Depends(get_db)):
+def update_lavador(
+    lavador_id: int,
+    body: LavadorUpdate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = db.get(Lavador, lavador_id)
     if not row:
         raise HTTPException(404, "Lavador não encontrado.")
@@ -49,7 +58,11 @@ def update_lavador(lavador_id: int, body: LavadorUpdate, db: Session = Depends(g
 
 
 @router.delete("/lavadores/{lavador_id}", status_code=204)
-def delete_lavador(lavador_id: int, db: Session = Depends(get_db)):
+def delete_lavador(
+    lavador_id: int,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = db.get(Lavador, lavador_id)
     if not row:
         raise HTTPException(404, "Lavador não encontrado.")
