@@ -111,3 +111,58 @@ def test_crud_servicos(client: TestClient):
         "preco_centavos"
     ] == 1500
     assert client.delete(f"/api/v1/servicos/{sid}").status_code == 204
+
+
+def test_seed_cria_lavador_demo(client: TestClient):
+    r = client.post("/api/v1/seed")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    lavs = client.get("/api/v1/lavadores").json()
+    assert any(l["nome"] == "Lavador Demo" for l in lavs)
+    # idempotente
+    r2 = client.post("/api/v1/seed")
+    assert r2.json()["lavadores_criados"] == 0
+
+
+def test_transicao_invalida(client: TestClient):
+    client.post("/api/v1/seed")
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+    at = client.post("/api/v1/atendimentos", json={"placa": "AAA1A11", "servico_id": sid}).json()
+    # na_fila -> pronto inválido
+    r = client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "pronto"})
+    assert r.status_code in (400, 422)
+    # cancelado a partir de pronto inválido
+    client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "lavando"})
+    client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "pronto"})
+    r = client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "cancelado"})
+    assert r.status_code in (400, 422)
+
+
+def test_payment_exige_status_pronto(client: TestClient):
+    client.post("/api/v1/seed")
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+    lav = client.post("/api/v1/lavadores", json={"nome": "Xico", "comissao_pct": 30}).json()
+    at = client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "PAY0001", "servico_id": sid, "lavador_id": lav["id"]},
+    ).json()
+    aid = at["id"]
+    r = client.post(
+        "/api/v1/payments/charge",
+        json={"atendimento_id": aid, "meio": "pix", "provider": "manual"},
+    )
+    assert r.status_code in (400, 422)
+    client.patch(f"/api/v1/atendimentos/{aid}/status", json={"status": "lavando"})
+    r = client.post(
+        "/api/v1/payments/charge",
+        json={"atendimento_id": aid, "meio": "pix", "provider": "manual"},
+    )
+    assert r.status_code in (400, 422)
+    client.patch(f"/api/v1/atendimentos/{aid}/status", json={"status": "pronto"})
+    r = client.post(
+        "/api/v1/payments/charge",
+        json={"atendimento_id": aid, "meio": "pix", "provider": "manual"},
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "pago"
