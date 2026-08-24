@@ -1,0 +1,191 @@
+:root {
+  --bg: #0c1222;
+  --panel: #152038;
+  --text: #e8eefc;
+  --muted: #9aaccc;
+  --accent: #2dd4bf;
+  --accent-2: #38bdf8;
+  --danger: #f87171;
+  --ok: #4ade80;
+  --border: #243352;
+  --radius: 12px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(1200px 600px at 10% -10%, #1a2a4a, var(--bg));
+  color: var(--text);
+  min-height: 100%;
+}
+
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(21, 32, 56, 0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+nav a {
+  color: var(--text);
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+p.lead {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  background: #0b1428;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  min-width: 160px;
+}
+
+button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #04201c;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+  color: #1a0505;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #243352;
+}
+
+.badge.na_fila {
+  background: #334155;
+}
+.badge.lavando {
+  background: #0369a1;
+}
+.badge.pronto {
+  background: #a16207;
+}
+.badge.pago {
+  background: #166534;
+}
+.badge.cancelado {
+  background: #7f1d1d;
+}
+
+.err {
+  color: var(--danger);
+  white-space: pre-wrap;
+}
+
+.ok {
+  color: var(--ok);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero {
+  padding: 2rem 0 1rem;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.cta a {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #04201c;
+  font-weight: 800;
+  padding: 0.75rem 1.1rem;
+  border-radius: 10px;
+}

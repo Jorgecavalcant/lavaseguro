@@ -1,0 +1,21 @@
+# Exemplo de Caddyfile para lavaseguro.tech42.com.br
+# Copie para a VPS e ajuste upstreams. Não versionar certificados.
+
+lavaseguro.tech42.com.br {
+	encode gzip
+
+	# API atrás de /api
+	handle /api/* {
+		reverse_proxy lavaseguro-api:8000
+	}
+
+	# Health direto (opcional)
+	handle /health {
+		reverse_proxy lavaseguro-api:8000
+	}
+
+	# Web Next.js
+	handle {
+		reverse_proxy lavaseguro-web:3000
+	}
+}
