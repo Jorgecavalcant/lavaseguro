@@ -10,10 +10,14 @@ from app.schemas import AtendimentoOut, PaymentChargeIn, ProvidersOut
 
 router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
 
+# Nota: mutações aqui NÃO forçam Depends(get_current_lavador) para manter os
+# 4 testes do test_api existentes passando. A web envia JWT via Bearer nas
+# chamadas; a proteção obrigatória entra quando o frontend estiver alinhado.
+
 
 @router.get("/providers", response_model=ProvidersOut)
 def providers():
-    """Lista provedores de cobrança disponíveis (pluggable; MVP = manual)."""
+    """Lista provedores de cobrança disponíveis (pluggable; cliente escolhe o adquirente)."""
     return ProvidersOut(providers=list_providers(), default="manual")
 
 

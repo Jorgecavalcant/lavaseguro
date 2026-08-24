@@ -6,6 +6,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth_jwt import create_access_token
 from app.database import get_db
 from app.models import Lavador, PinDia
 from app.schemas import AuthPinIn, AuthPinOut, LavadorCreate, LavadorOut, LavadorUpdate, PinDiaOut
@@ -82,14 +83,17 @@ def gerar_pin_do_dia(lavador_id: int, db: Session = Depends(get_db)):
 
 @router.post("/auth/pin", response_model=AuthPinOut)
 def auth_pin(body: AuthPinIn, db: Session = Depends(get_db)):
+    """Valida PIN do dia e emite JWT HS256 de operador."""
     hoje = date.today()
     row = db.query(PinDia).filter(PinDia.data == hoje, PinDia.pin == body.pin).one_or_none()
     if not row:
         raise HTTPException(401, "PIN inválido ou expirado. Peça o PIN do dia ao operador.")
     lavador = db.get(Lavador, row.lavador_id)
+    token = create_access_token(row.lavador_id)
     return AuthPinOut(
         ok=True,
         lavador_id=row.lavador_id,
         lavador_nome=lavador.nome if lavador else "",
         data=hoje,
+        access_token=token,
     )

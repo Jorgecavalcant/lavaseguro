@@ -1,8 +1,9 @@
 """Provedores de pagamento plugáveis — o cliente escolhe o banco/adquirente.
 
-MVP: só o provedor `manual` (marca como pago no sistema).
-Provedores reais (Cielo, Stone, PagSeguro, API do banco do cliente, etc.)
-entram como novos módulos sem mudar o fluxo de atendimento.
+MVP: `manual` (real) + stubs `pix_manual` e `cartao_pos` (registram localmente,
+mensagem clara de stub; nenhuma transação externa).
+NUNCA Asaas como core. Provedores reais (Cielo, Stone, PagSeguro, API do banco
+do cliente, etc.) entram como novos módulos sem mudar o fluxo de atendimento.
 """
 
 from __future__ import annotations
@@ -52,8 +53,44 @@ class ManualProvider(PaymentProvider):
         )
 
 
+class PixManualProvider(PaymentProvider):
+    """STUB PIX manual — registra o pagamento localmente, sem integração real."""
+
+    name = "pix_manual"
+
+    def charge(self, req: ChargeRequest) -> ChargeResult:
+        return ChargeResult(
+            ok=True,
+            provider=self.name,
+            external_id=f"stub-pix-{req.atendimento_id}",
+            message=(
+                "STUB pix_manual: pagamento registrado apenas localmente "
+                "(nenhuma transação externa foi executada)."
+            ),
+        )
+
+
+class CartaoPosProvider(PaymentProvider):
+    """STUB cartão POS — registra o pagamento localmente, sem integração real."""
+
+    name = "cartao_pos"
+
+    def charge(self, req: ChargeRequest) -> ChargeResult:
+        return ChargeResult(
+            ok=True,
+            provider=self.name,
+            external_id=f"stub-pos-{req.atendimento_id}",
+            message=(
+                "STUB cartao_pos: pagamento registrado apenas localmente "
+                "(nenhuma transação externa foi executada)."
+            ),
+        )
+
+
 _REGISTRY: dict[str, PaymentProvider] = {
     ManualProvider.name: ManualProvider(),
+    PixManualProvider.name: PixManualProvider(),
+    CartaoPosProvider.name: CartaoPosProvider(),
 }
 
 
