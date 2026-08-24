@@ -42,66 +42,86 @@ export default function CaixaPage() {
     apiFetch<CaixaDia>("/api/v1/caixa/dia")
       .then(setCaixa)
       .catch((err) =>
-        setErro(err instanceof Error ? err.message : "Erro ao carregar caixa.")
+        setErro(
+          err instanceof Error ? err.message : "Não conseguimos carregar o caixa."
+        )
       );
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-2xl font-bold mb-6">Caixa do Dia</h1>
+    <section>
+      <header className="page-head">
+        <p className="eyebrow">Fechamento</p>
+        <h1>Caixa do dia</h1>
+        <p className="muted" style={{ margin: 0 }}>
+          Totais e comissão por lavador — sem briga no fim do turno.
+        </p>
+      </header>
 
-      {erro && <p className="text-red-400 mb-4">{erro}</p>}
+      {erro && (
+        <p className="err" role="alert">
+          {erro}
+        </p>
+      )}
 
-      {!caixa && !erro && <p className="text-slate-400">Carregando…</p>}
+      {!caixa && !erro && <p className="empty">Carregando o caixa…</p>}
 
       {caixa && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="bg-slate-800 p-4 rounded-xl">
-              <p className="text-slate-400 text-sm">Bruto</p>
-              <p className="text-2xl font-bold">{brl(caixa.bruto_centavos)}</p>
+          <div className="stat-grid">
+            <div className="stat">
+              <p className="label">Bruto</p>
+              <p className="value">{brl(caixa.bruto_centavos)}</p>
             </div>
-            <div className="bg-slate-800 p-4 rounded-xl">
-              <p className="text-slate-400 text-sm">Comissões</p>
-              <p className="text-2xl font-bold">{brl(caixa.comissao_centavos)}</p>
+            <div className="stat">
+              <p className="label">Comissões</p>
+              <p className="value">{brl(caixa.comissao_centavos)}</p>
             </div>
-            <div className="bg-slate-800 p-4 rounded-xl">
-              <p className="text-slate-400 text-sm">Líquido</p>
-              <p className="text-2xl font-bold text-green-400">
-                {brl(caixa.liquido_centavos)}
-              </p>
+            <div className="stat">
+              <p className="label">Líquido</p>
+              <p className="value ok">{brl(caixa.liquido_centavos)}</p>
             </div>
           </div>
 
-          <p className="text-slate-400 mb-4">
+          <p className="muted" style={{ marginBottom: "1rem" }}>
             {caixa.data} · {caixa.total_pagos} pagamento(s) confirmado(s)
           </p>
 
-          <h2 className="text-lg font-semibold mb-2">Por lavador</h2>
-          <ul className="space-y-2">
-            {caixa.por_lavador.map((l, i) => (
-              <li
-                key={`${l.lavador_id ?? "sem"}-${i}`}
-                className="bg-slate-800 p-3 rounded flex flex-wrap justify-between items-center gap-2"
-              >
-                <span>{l.lavador_nome}</span>
-                <span className="flex gap-4 text-sm">
-                  <span>{l.qtd_pagos} pago(s)</span>
-                  <span>Bruto: {brl(l.bruto_centavos)}</span>
-                  <span>Comissão: {brl(l.comissao_centavos)}</span>
-                  <span className="font-semibold text-green-400">
-                    Líquido: {brl(l.liquido_centavos)}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {caixa.por_lavador.length === 0 && (
-            <p className="text-slate-400">Nenhum pagamento hoje ainda.</p>
-          )}
+          <div className="card">
+            <h2>Por lavador</h2>
+            {caixa.por_lavador.length === 0 ? (
+              <p className="empty" style={{ paddingBottom: 0 }}>
+                Nenhum pagamento hoje ainda.
+              </p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Lavador</th>
+                      <th>Pagos</th>
+                      <th>Bruto</th>
+                      <th>Comissão</th>
+                      <th>Líquido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {caixa.por_lavador.map((l, i) => (
+                      <tr key={`${l.lavador_id ?? "sem"}-${i}`}>
+                        <td>{l.lavador_nome}</td>
+                        <td>{l.qtd_pagos}</td>
+                        <td>{brl(l.bruto_centavos)}</td>
+                        <td>{brl(l.comissao_centavos)}</td>
+                        <td className="ok-msg">{brl(l.liquido_centavos)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </>
       )}
-    </main>
+    </section>
   );
 }

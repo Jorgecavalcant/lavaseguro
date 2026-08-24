@@ -12,6 +12,21 @@ type Atendimento = {
   status: string;
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  na_fila: "Na fila",
+  lavando: "Lavando",
+  pronto: "Pronto",
+  pago: "Pago",
+  cancelado: "Cancelado",
+};
+
+function brl(centavos: number): string {
+  return (centavos / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export default function AtenderPage() {
   const router = useRouter();
   const [servicos, setServicos] = useState<Servico[]>([]);
@@ -19,6 +34,7 @@ export default function AtenderPage() {
   const [placa, setPlaca] = useState("");
   const [servicoId, setServicoId] = useState("");
   const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!getToken()) {
@@ -30,7 +46,8 @@ export default function AtenderPage() {
         setServicos(rows);
         if (rows.length > 0) setServicoId(String(rows[0].id));
       })
-      .catch(() => setErro("Falha ao carregar serviços."));
+      .catch(() => setErro("Não conseguimos carregar os serviços. Tente de novo."))
+      .finally(() => setLoading(false));
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -58,7 +75,7 @@ export default function AtenderPage() {
       setPlaca("");
       await carregar();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao abrir atendimento.");
+      setErro(err instanceof Error ? err.message : "Não deu para abrir o atendimento.");
     }
   }
 
@@ -70,80 +87,100 @@ export default function AtenderPage() {
       });
       await carregar();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao mudar status.");
+      setErro(err instanceof Error ? err.message : "Não deu para mudar o status.");
     }
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-2xl font-bold mb-6">Atender</h1>
+    <section>
+      <header className="page-head">
+        <p className="eyebrow">Operação</p>
+        <h1>Atender</h1>
+        <p className="muted" style={{ margin: 0 }}>
+          Placa + serviço → na fila. Sem foto neste fluxo.
+        </p>
+      </header>
 
-      <form onSubmit={submit} className="flex flex-wrap gap-2 mb-8">
-        <input
-          value={placa}
-          onChange={(e) => setPlaca(e.target.value.toUpperCase())}
-          placeholder="Placa (ex.: ABC-1234)"
-          minLength={5}
-          maxLength={10}
-          required
-          className="p-2 rounded bg-slate-800 border border-slate-700 flex-1 min-w-[180px]"
-        />
-        <select
-          value={servicoId}
-          onChange={(e) => setServicoId(e.target.value)}
-          className="p-2 rounded bg-slate-800 border border-slate-700"
-        >
-          {servicos.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.nome} — R$ {(s.preco_centavos / 100).toFixed(2)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="px-4 py-2 rounded bg-blue-600 font-semibold hover:bg-blue-500"
-        >
-          Abrir atendimento
-        </button>
+      <form onSubmit={submit} className="card form-row">
+        <label className="field">
+          Placa <span className="req">*</span>
+          <input
+            className="placa-input"
+            value={placa}
+            onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+            placeholder="ABC1D23"
+            minLength={5}
+            maxLength={10}
+            required
+            autoComplete="off"
+          />
+        </label>
+        <label className="field">
+          Serviço
+          <select
+            value={servicoId}
+            onChange={(e) => setServicoId(e.target.value)}
+            required
+          >
+            {servicos.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nome} — {brl(s.preco_centavos)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit">Abrir atendimento</button>
       </form>
 
-      {erro && <p className="text-red-400 mb-4">{erro}</p>}
-
-      <ul className="space-y-2">
-        {atendimentos.map((a) => (
-          <li
-            key={a.id}
-            className="bg-slate-800 p-3 rounded flex justify-between items-center"
-          >
-            <span>
-              #{a.id} — {a.placa} ·{" "}
-              <strong className="capitalize">{a.status.replace("_", " ")}</strong>
-            </span>
-            <span className="flex gap-2">
-              {a.status === "na_fila" && (
-                <button
-                  onClick={() => mudarStatus(a.id, "lavando")}
-                  className="px-3 py-1 rounded bg-yellow-600 text-sm hover:bg-yellow-500"
-                >
-                  Iniciar lavagem
-                </button>
-              )}
-              {a.status === "lavando" && (
-                <button
-                  onClick={() => mudarStatus(a.id, "pronto")}
-                  className="px-3 py-1 rounded bg-green-600 text-sm hover:bg-green-500"
-                >
-                  Marcar pronto
-                </button>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {atendimentos.length === 0 && (
-        <p className="text-slate-400">Nenhum atendimento aberto.</p>
+      {erro && (
+        <p className="err" role="alert">
+          {erro}
+        </p>
       )}
-    </main>
+
+      {loading && <p className="empty">Carregando a fila…</p>}
+
+      {!loading && (
+        <ul className="queue-list">
+          {atendimentos.map((a) => (
+            <li key={a.id} className="queue-item">
+              <div className="meta">
+                <span className="id">#{a.id}</span>
+                <span className="placa">{a.placa}</span>
+                <span className={`badge ${a.status}`}>
+                  {STATUS_LABEL[a.status] ?? a.status}
+                </span>
+              </div>
+              <div className="queue-actions">
+                {a.status === "na_fila" && (
+                  <button
+                    type="button"
+                    className="warn"
+                    onClick={() => mudarStatus(a.id, "lavando")}
+                  >
+                    Iniciar lavagem
+                  </button>
+                )}
+                {a.status === "lavando" && (
+                  <button
+                    type="button"
+                    className="ok"
+                    onClick={() => mudarStatus(a.id, "pronto")}
+                  >
+                    Marcar pronto
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && atendimentos.length === 0 && (
+        <p className="empty">
+          Nenhum atendimento na fila. Digite a placa para começar.
+        </p>
+      )}
+    </section>
   );
 }

@@ -24,13 +24,21 @@ export default function PainelPage() {
   const router = useRouter();
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const carregar = useCallback(async () => {
     try {
       const rows = await apiFetch<Atendimento[]>("/api/v1/atendimentos");
       setAtendimentos(rows);
+      setErro("");
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao carregar atendimentos.");
+      setErro(
+        err instanceof Error
+          ? err.message
+          : "Não conseguimos carregar os atendimentos."
+      );
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -51,70 +59,87 @@ export default function PainelPage() {
       });
       await carregar();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao mudar status.");
+      setErro(err instanceof Error ? err.message : "Não deu para mudar o status.");
     }
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-2xl font-bold mb-6">Painel de Atendimentos</h1>
+    <section>
+      <header className="page-head">
+        <p className="eyebrow">Fila ao vivo</p>
+        <h1>Painel</h1>
+        <p className="muted" style={{ margin: 0 }}>
+          Status na ponta do polegar: fila → lavando → pronto.
+        </p>
+      </header>
 
-      {erro && <p className="text-red-400 mb-4">{erro}</p>}
-
-      <ul className="space-y-2">
-        {atendimentos.map((a) => (
-          <li
-            key={a.id}
-            className="bg-slate-800 p-3 rounded flex flex-wrap justify-between items-center gap-2"
-          >
-            <span>
-              #{a.id} — {a.placa} ·{" "}
-              <strong>{STATUS_LABEL[a.status] ?? a.status}</strong>
-            </span>
-            <span className="flex gap-2">
-              {a.status === "na_fila" && (
-                <>
-                  <button
-                    onClick={() => mudarStatus(a.id, "lavando")}
-                    className="px-3 py-1 rounded bg-yellow-600 text-sm hover:bg-yellow-500"
-                  >
-                    Lavando
-                  </button>
-                  <button
-                    onClick={() => mudarStatus(a.id, "cancelado")}
-                    className="px-3 py-1 rounded bg-red-700 text-sm hover:bg-red-600"
-                  >
-                    Cancelar
-                  </button>
-                </>
-              )}
-              {a.status === "lavando" && (
-                <>
-                  <button
-                    onClick={() => mudarStatus(a.id, "pronto")}
-                    className="px-3 py-1 rounded bg-green-600 text-sm hover:bg-green-500"
-                  >
-                    Pronto
-                  </button>
-                  <button
-                    onClick={() => mudarStatus(a.id, "cancelado")}
-                    className="px-3 py-1 rounded bg-red-700 text-sm hover:bg-red-600"
-                  >
-                    Cancelar
-                  </button>
-                </>
-              )}
-              {(a.status === "pronto" || a.status === "pago" || a.status === "cancelado") && (
-                <span className="text-slate-500 text-sm">—</span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {atendimentos.length === 0 && !erro && (
-        <p className="text-slate-400">Nenhum atendimento registrado.</p>
+      {erro && (
+        <p className="err" role="alert">
+          {erro}
+        </p>
       )}
-    </main>
+
+      {loading && <p className="empty">Carregando a fila…</p>}
+
+      {!loading && (
+        <ul className="queue-list">
+          {atendimentos.map((a) => (
+            <li key={a.id} className="queue-item">
+              <div className="meta">
+                <span className="id">#{a.id}</span>
+                <span className="placa">{a.placa}</span>
+                <span className={`badge ${a.status}`}>
+                  {STATUS_LABEL[a.status] ?? a.status}
+                </span>
+              </div>
+              <div className="queue-actions">
+                {a.status === "na_fila" && (
+                  <>
+                    <button
+                      type="button"
+                      className="warn"
+                      onClick={() => mudarStatus(a.id, "lavando")}
+                    >
+                      Lavando
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => mudarStatus(a.id, "cancelado")}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+                {a.status === "lavando" && (
+                  <>
+                    <button
+                      type="button"
+                      className="ok"
+                      onClick={() => mudarStatus(a.id, "pronto")}
+                    >
+                      Pronto
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => mudarStatus(a.id, "cancelado")}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && atendimentos.length === 0 && !erro && (
+        <p className="empty">
+          Nenhum atendimento registrado. Abra um em Atender.
+        </p>
+      )}
+    </section>
   );
 }

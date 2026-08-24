@@ -9,31 +9,69 @@ export default function EntrarPage() {
   const [lavadorId, setLavadorId] = useState("1");
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
+    setLoading(true);
     try {
       await loginComPin(Number(lavadorId), pin);
       router.push("/atender");
     } catch {
-      setErro("PIN inválido ou expirado.");
+      setErro("PIN inválido ou expirado. Peça o PIN do dia ao responsável do ponto.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-      <form onSubmit={submit} className="bg-slate-800 p-8 rounded-xl w-80 space-y-4">
-        <h1 className="text-xl font-bold">LavaSeguro — Entrar</h1>
-        <input value={lavadorId} onChange={(e) => setLavadorId(e.target.value)}
-               placeholder="ID do lavador" inputMode="numeric"
-               className="w-full p-2 rounded bg-slate-700" />
-        <input value={pin} onChange={(e) => setPin(e.target.value)} type="password"
-               placeholder="PIN do dia" inputMode="numeric"
-               className="w-full p-2 rounded bg-slate-700" />
-        {erro && <p className="text-red-400 text-sm">{erro}</p>}
-        <button className="w-full p-2 rounded bg-blue-600 font-semibold">Entrar</button>
+    <div className="auth-wrap">
+      <form onSubmit={submit} className="auth-card form-stack" noValidate>
+        <div>
+          <p className="eyebrow">Acesso do dia</p>
+          <h1>Entrar</h1>
+          <p className="hint">
+            Use o PIN do dia do ponto. Muda todo dia — alta rotatividade, zero
+            senha pessoal.
+          </p>
+        </div>
+
+        <label className="field">
+          ID do lavador
+          <input
+            value={lavadorId}
+            onChange={(e) => setLavadorId(e.target.value)}
+            placeholder="Ex.: 1"
+            inputMode="numeric"
+            autoComplete="username"
+            required
+          />
+        </label>
+
+        <label className="field">
+          PIN do dia <span className="req">*</span>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            type="password"
+            placeholder="••••"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            required
+          />
+        </label>
+
+        {erro && (
+          <p className="err" role="alert">
+            {erro}
+          </p>
+        )}
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Entrando…" : "Entrar"}
+        </button>
       </form>
-    </main>
+    </div>
   );
 }
