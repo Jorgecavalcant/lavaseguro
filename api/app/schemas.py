@@ -46,6 +46,8 @@ class AuthPinOut(BaseModel):
     lavador_id: int
     lavador_nome: str
     data: date
+    access_token: str
+    token_type: str = "bearer"
 
 
 class ServicoCreate(BaseModel):

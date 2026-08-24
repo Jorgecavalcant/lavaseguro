@@ -1,8 +1,10 @@
-# Provenance — ox-alpha
+# Proveniência ox-alpha — LavaSeguro
 
-Product code evolution in this branch was generated via OpenRouter model `stealth/ox-alpha`
-(orchestrator: Cursor `/jc` only plans/dispatches/verifies).
+- Modelo OpenRouter: `stealth/ox-alpha`
+- Sessão: `lavaseguro-fase1`
+- Turnos: 7
+- Atualizado (UTC): 2026-08-24T18:22:38.433336+00:00
+- Escopo: JWT (PIN→Bearer), plugins pix_manual/cartao_pos, web apiFetch + entrar/atender/painel/caixa
+- Sem Asaas no core. DNS só documentação.
 
-Session (local): `~/TECH42/.openrouter-sessions/lavaseguro-evolve-api-20260824.json`.
-
-No Tech42 confidential secrets were sent to the model.
+Orquestração local aplica/valida; não é autora do código de produto.

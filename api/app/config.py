@@ -15,9 +15,18 @@ class Settings(BaseSettings):
     # Cliente configura o banco/adquirente dele — NÃO há adquirente fixo da Tech42.
     payment_provider: str = "manual"
 
+    # JWT operador — default herda de app_secret para não exigir nova var no MVP.
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = 480
+    jwt_algorithm: str = "HS256"
+
     @property
     def cors_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]
+
+    @property
+    def effective_jwt_secret(self) -> str:
+        return self.jwt_secret or self.app_secret
 
 
 @lru_cache

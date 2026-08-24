@@ -1,9 +1,2 @@
-# STATE.min — LavaSeguro
-
-- **Status:** MVP evoluído via ox-alpha (seed lavador, transições, pagamento só em pronto)
-- **Domínio:** lavaseguro.tech42.com.br (DNS = CEO)
-- **VPS:** /srv/projetos/clientes/lavaseguro
-- **Foto:** só em reclamação
-- **Pagamento:** plugável (MVP = manual; sem Asaas core)
-- **Repo:** público (workaround CI)
-- **Atualizado:** 2026-08-24
+# STATE.min
+JWT operador: OK (HS256 via /auth/pin, Bearer+X-Pin compat, mutações ainda opcionais p/ não quebrar test_api). Payments: manual + stubs pix_manual/cartao_pos no registry, charge pluggable, sem Asaas. Próximo: forçar auth nas mutações → deploy após DNS / provedores reais.
