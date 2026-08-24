@@ -98,6 +98,23 @@ def test_fluxo_atendimento_sem_foto(client: TestClient, auth_headers: dict[str, 
     assert caixa["comissao_centavos"] == servicos[0]["preco_centavos"] * 40 // 100
 
 
+def test_criar_atendimento_vincula_lavador_do_token(client: TestClient, auth_headers: dict[str, str]):
+    """POST sem lavador_id no body deve vincular o lavador autenticado (token/PIN)."""
+    client.post("/api/v1/seed")
+    lavs = client.get("/api/v1/lavadores").json()
+    demo = next(l for l in lavs if l["nome"] == "Lavador Demo")
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+
+    at = client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "TOK0E01", "servico_id": sid},
+        headers=auth_headers,
+    )
+    assert at.status_code == 201
+    data = at.json()
+    assert data["lavador_id"] == demo["id"]
+
+
 def test_reclamacao_foto_opcional(client: TestClient, auth_headers: dict[str, str]):
     servico_id = client.get("/api/v1/servicos").json()[0]["id"]
     at = client.post(
