@@ -27,8 +27,8 @@ def charge(body: PaymentChargeIn, db: Session = Depends(get_db)):
         raise HTTPException(422, "Atendimento cancelado não pode ser pago.")
     if row.status == StatusAtendimento.pago:
         return row
-    if row.status not in {StatusAtendimento.pronto, StatusAtendimento.lavando}:
-        raise HTTPException(422, "Só cobra atendimento pronto (ou em lavagem, se combinado).")
+    if row.status != StatusAtendimento.pronto:
+        raise HTTPException(422, "Só cobra atendimento com status pronto.")
 
     servico = db.get(Servico, row.servico_id)
     valor = servico.preco_centavos if servico else 0

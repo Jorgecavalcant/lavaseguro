@@ -14,11 +14,7 @@ router = APIRouter(prefix="/api/v1/atendimentos", tags=["atendimentos"])
 TRANSICOES = {
     StatusAtendimento.na_fila: {StatusAtendimento.lavando, StatusAtendimento.cancelado},
     StatusAtendimento.lavando: {StatusAtendimento.pronto, StatusAtendimento.cancelado},
-    StatusAtendimento.pronto: {
-        StatusAtendimento.pago,
-        StatusAtendimento.cancelado,
-        StatusAtendimento.lavando,
-    },
+    StatusAtendimento.pronto: {StatusAtendimento.pago},
     StatusAtendimento.pago: set(),
     StatusAtendimento.cancelado: set(),
 }
