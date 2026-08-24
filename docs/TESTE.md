@@ -23,13 +23,27 @@ Resposta traz `pin` (4 dígitos) — **muda a cada dia**.
 
 3. No site: https://lavaseguro.tech42.com.br/entrar → informar o PIN.
 
+## Autenticação nas mutações
+
+Mutations (criar/mudar status de atendimento, cobrar pagamento, CRUD de serviços e lavadores, criar reclamação) **exigem** `Authorization: Bearer <jwt>` (ou `X-Pin` para compatibilidade).
+
+Obter o token:
+
+```bash
+TOKEN=$(curl -s -X POST https://lavaseguro.tech42.com.br/api/v1/auth/pin \
+  -H 'Content-Type: application/json' \
+  -d '{"pin":"1234"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+
+curl -X POST https://lavaseguro.tech42.com.br/api/v1/atendimentos \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"placa":"ABC1D23","servico_id":1}'
+```
+
+Sem token em mutação → **401**. Endpoints abertos: GETs, `/seed`, `/health`, `/payments/providers`, `/caixa/dia`, `/lavadores/{id}/pin-do-dia`, `/auth/pin`.
+
 ## Fluxo feliz
 
-1. `/entrar` com o PIN do dia.
-2. `/atender` → placa + serviço → criar atendimento.
+1. `/entrar` com o PIN do dia (emite JWT).
+2. `/atender` → placa + serviço → criar atendimento (com Bearer).
 3. Acompanhar no `/painel` e fechar no `/caixa`.
 4. Pagamento: provedor **manual** (demo).
-
-## Sem PIN?
-
-Também dá para abrir `/atender` direto no MVP (mutações ainda permissivas) — o PIN é o caminho “oficial” de operador.

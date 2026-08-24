@@ -5,6 +5,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.auth_jwt import get_current_lavador
 from app.database import get_db
 from app.models import Atendimento, Lavador, Servico, StatusAtendimento
 from app.schemas import AtendimentoCreate, AtendimentoOut, StatusUpdate
@@ -40,7 +41,11 @@ def list_atendimentos(
 
 
 @router.post("", response_model=AtendimentoOut, status_code=201)
-def create_atendimento(body: AtendimentoCreate, db: Session = Depends(get_db)):
+def create_atendimento(
+    body: AtendimentoCreate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     # Fluxo normal: só placa + serviço. Sem foto.
     servico = db.get(Servico, body.servico_id)
     if not servico or not servico.ativo:
@@ -71,7 +76,12 @@ def get_atendimento(atendimento_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{atendimento_id}/status", response_model=AtendimentoOut)
-def update_status(atendimento_id: int, body: StatusUpdate, db: Session = Depends(get_db)):
+def update_status(
+    atendimento_id: int,
+    body: StatusUpdate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = db.get(Atendimento, atendimento_id)
     if not row:
         raise HTTPException(404, "Atendimento não encontrado.")

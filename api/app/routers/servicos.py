@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth_jwt import get_current_lavador
 from app.database import get_db
 from app.models import Servico
 from app.schemas import ServicoCreate, ServicoOut, ServicoUpdate
@@ -19,7 +20,11 @@ def list_servicos(db: Session = Depends(get_db), ativos: bool = True):
 
 
 @router.post("", response_model=ServicoOut, status_code=201)
-def create_servico(body: ServicoCreate, db: Session = Depends(get_db)):
+def create_servico(
+    body: ServicoCreate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = Servico(**body.model_dump())
     db.add(row)
     db.commit()
@@ -28,7 +33,12 @@ def create_servico(body: ServicoCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{servico_id}", response_model=ServicoOut)
-def update_servico(servico_id: int, body: ServicoUpdate, db: Session = Depends(get_db)):
+def update_servico(
+    servico_id: int,
+    body: ServicoUpdate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = db.get(Servico, servico_id)
     if not row:
         raise HTTPException(404, "Serviço não encontrado.")
@@ -40,7 +50,11 @@ def update_servico(servico_id: int, body: ServicoUpdate, db: Session = Depends(g
 
 
 @router.delete("/{servico_id}", status_code=204)
-def delete_servico(servico_id: int, db: Session = Depends(get_db)):
+def delete_servico(
+    servico_id: int,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     row = db.get(Servico, servico_id)
     if not row:
         raise HTTPException(404, "Serviço não encontrado.")

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth_jwt import get_current_lavador
 from app.database import get_db
 from app.models import Atendimento, Reclamacao
 from app.schemas import ReclamacaoCreate, ReclamacaoOut
@@ -11,7 +12,11 @@ router = APIRouter(prefix="/api/v1/reclamacoes", tags=["reclamacoes"])
 
 
 @router.post("", response_model=ReclamacaoOut, status_code=201)
-def criar_reclamacao(body: ReclamacaoCreate, db: Session = Depends(get_db)):
+def criar_reclamacao(
+    body: ReclamacaoCreate,
+    db: Session = Depends(get_db),
+    _lavador: dict = Depends(get_current_lavador),
+):
     # Único lugar do MVP onde foto entra — e é opcional.
     atendimento = db.get(Atendimento, body.atendimento_id)
     if not atendimento:
