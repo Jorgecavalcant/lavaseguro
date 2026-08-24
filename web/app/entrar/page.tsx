@@ -1,56 +1,39 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { api } from "@/lib/api";
-
-type AuthOut = { ok: boolean; lavador_id: number; lavador_nome: string; data: string };
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { loginComPin } from "@/lib/api";
 
 export default function EntrarPage() {
+  const router = useRouter();
+  const [lavadorId, setLavadorId] = useState("1");
   const [pin, setPin] = useState("");
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
+  const [erro, setErro] = useState("");
 
-  async function onSubmit(e: FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setErr("");
-    setMsg("");
+    setErro("");
     try {
-      const data = await api<AuthOut>("/api/v1/auth/pin", {
-        method: "POST",
-        body: JSON.stringify({ pin }),
-      });
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "lavaseguro_sessao",
-          JSON.stringify({ lavador_id: data.lavador_id, nome: data.lavador_nome })
-        );
-      }
-      setMsg(`Olá, ${data.lavador_nome}. PIN válido para ${data.data}.`);
-    } catch (ex) {
-      setErr(ex instanceof Error ? ex.message : "Falha no login");
+      await loginComPin(Number(lavadorId), pin);
+      router.push("/atender");
+    } catch {
+      setErro("PIN inválido ou expirado.");
     }
   }
 
   return (
-    <section>
-      <h1>Entrar</h1>
-      <p className="lead">Use o PIN do dia (ou QR) entregue pelo operador. Alta rotatividade, sem senha fixa.</p>
-      <form className="card row" onSubmit={onSubmit}>
-        <label>
-          PIN do dia
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            maxLength={8}
-            inputMode="numeric"
-            required
-            placeholder="1234"
-          />
-        </label>
-        <button type="submit">Entrar</button>
+    <main className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+      <form onSubmit={submit} className="bg-slate-800 p-8 rounded-xl w-80 space-y-4">
+        <h1 className="text-xl font-bold">LavaSeguro — Entrar</h1>
+        <input value={lavadorId} onChange={(e) => setLavadorId(e.target.value)}
+               placeholder="ID do lavador" inputMode="numeric"
+               className="w-full p-2 rounded bg-slate-700" />
+        <input value={pin} onChange={(e) => setPin(e.target.value)} type="password"
+               placeholder="PIN do dia" inputMode="numeric"
+               className="w-full p-2 rounded bg-slate-700" />
+        {erro && <p className="text-red-400 text-sm">{erro}</p>}
+        <button className="w-full p-2 rounded bg-blue-600 font-semibold">Entrar</button>
       </form>
-      {msg && <p className="ok">{msg}</p>}
-      {err && <p className="err">{err}</p>}
-    </section>
+    </main>
   );
 }

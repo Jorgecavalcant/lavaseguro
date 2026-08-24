@@ -1,60 +1,50 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+const TOKEN_KEY = "lavaseguro_token";
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Erro ${res.status}`);
+export function apiBase(): string {
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+}
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export async function apiFetch<T = unknown>(
+  path: string,
+  init?: RequestInit
+): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init?.headers as Record<string, string>) ?? {}),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
-  if (res.status === 204) return undefined as T;
+
+  const res = await fetch(apiBase() + path, { ...init, headers });
+  if (!res.ok) {
+    throw new Error(`API ${res.status}: ${await res.text()}`);
+  }
   return res.json() as Promise<T>;
 }
 
-export type Servico = {
-  id: number;
-  nome: string;
-  preco_centavos: number;
-  ativo: boolean;
-};
-
-export type Atendimento = {
-  id: number;
-  placa: string;
-  servico_id: number;
-  lavador_id: number | null;
-  status: string;
-  meio_pagamento: string | null;
-  created_at: string;
-  paid_at: string | null;
-};
-
-export type CaixaDia = {
-  data: string;
-  total_pagos: number;
-  bruto_centavos: number;
-  comissao_centavos: number;
-  liquido_centavos: number;
-  por_lavador: Array<{
-    lavador_id: number | null;
-    lavador_nome: string;
-    qtd_pagos: number;
-    bruto_centavos: number;
-    comissao_centavos: number;
-    liquido_centavos: number;
-  }>;
-};
-
-export function brl(centavos: number): string {
-  return (centavos / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
+export async function loginComPin(_lavadorId: number, pin: string) {
+  const res = await fetch(`${apiBase()}/api/v1/auth/pin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pin }),
   });
+  if (!res.ok) throw new Error("PIN inválido");
+  const data = await res.json();
+  setToken(data.access_token);
+  return data;
 }

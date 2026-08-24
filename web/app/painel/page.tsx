@@ -1,111 +1,120 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Atendimento, api } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { apiFetch, getToken } from "@/lib/api";
 
-const NEXT: Record<string, string | null> = {
-  na_fila: "lavando",
-  lavando: "pronto",
-  pronto: null,
-  pago: null,
-  cancelado: null,
+type Atendimento = {
+  id: number;
+  placa: string;
+  servico_id: number;
+  lavador_id: number | null;
+  status: string;
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  na_fila: "Na fila",
+  lavando: "Lavando",
+  pronto: "Pronto",
+  pago: "Pago",
+  cancelado: "Cancelado",
 };
 
 export default function PainelPage() {
-  const [itens, setItens] = useState<Atendimento[]>([]);
-  const [err, setErr] = useState("");
+  const router = useRouter();
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [erro, setErro] = useState("");
 
   const carregar = useCallback(async () => {
     try {
-      const data = await api<Atendimento[]>("/api/v1/atendimentos");
-      setItens(data.filter((a) => !["pago", "cancelado"].includes(a.status)));
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Falha ao carregar fila");
+      const rows = await apiFetch<Atendimento[]>("/api/v1/atendimentos");
+      setAtendimentos(rows);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao carregar atendimentos.");
     }
   }, []);
 
   useEffect(() => {
-    carregar();
-    const id = setInterval(carregar, 4000);
-    return () => clearInterval(id);
-  }, [carregar]);
-
-  async function avancar(a: Atendimento) {
-    const next = NEXT[a.status];
-    if (!next) return;
-    setErr("");
-    try {
-      await api(`/api/v1/atendimentos/${a.id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: next }),
-      });
-      await carregar();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Falha ao atualizar");
+    if (!getToken()) {
+      router.replace("/entrar");
+      return;
     }
-  }
+    carregar();
+  }, [carregar, router]);
 
-  async function marcarPago(a: Atendimento) {
-    setErr("");
+  async function mudarStatus(id: number, status: string) {
+    setErro("");
     try {
-      await api("/api/v1/payments/charge", {
-        method: "POST",
-        body: JSON.stringify({
-          atendimento_id: a.id,
-          meio: "pix",
-          provider: "manual",
-        }),
+      await apiFetch(`/api/v1/atendimentos/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
       });
       await carregar();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Falha no pagamento");
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao mudar status.");
     }
   }
 
   return (
-    <section>
-      <p>
-        <Link href="/">LavaSeguro</Link> · Painel
-      </p>
-      <h1>Fila</h1>
-      <p className="lead">Status: na fila → lavando → pronto → pago.</p>
-      {err && <p className="err">{err}</p>}
-      <div className="card">
-        {itens.length === 0 && <p>Fila vazia.</p>}
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {itens.map((a) => (
-            <li
-              key={a.id}
-              style={{
-                display: "flex",
-                gap: "0.75rem",
-                flexWrap: "wrap",
-                alignItems: "center",
-                padding: "0.75rem 0",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <strong>{a.placa}</strong>
-              <span>#{a.id}</span>
-              <span>{a.status}</span>
-              {NEXT[a.status] && (
-                <button type="button" onClick={() => avancar(a)}>
-                  → {NEXT[a.status]}
-                </button>
+    <main className="min-h-screen bg-slate-900 text-white p-8">
+      <h1 className="text-2xl font-bold mb-6">Painel de Atendimentos</h1>
+
+      {erro && <p className="text-red-400 mb-4">{erro}</p>}
+
+      <ul className="space-y-2">
+        {atendimentos.map((a) => (
+          <li
+            key={a.id}
+            className="bg-slate-800 p-3 rounded flex flex-wrap justify-between items-center gap-2"
+          >
+            <span>
+              #{a.id} — {a.placa} ·{" "}
+              <strong>{STATUS_LABEL[a.status] ?? a.status}</strong>
+            </span>
+            <span className="flex gap-2">
+              {a.status === "na_fila" && (
+                <>
+                  <button
+                    onClick={() => mudarStatus(a.id, "lavando")}
+                    className="px-3 py-1 rounded bg-yellow-600 text-sm hover:bg-yellow-500"
+                  >
+                    Lavando
+                  </button>
+                  <button
+                    onClick={() => mudarStatus(a.id, "cancelado")}
+                    className="px-3 py-1 rounded bg-red-700 text-sm hover:bg-red-600"
+                  >
+                    Cancelar
+                  </button>
+                </>
               )}
-              {a.status === "pronto" && (
-                <button type="button" onClick={() => marcarPago(a)}>
-                  Marcar pago (manual)
-                </button>
+              {a.status === "lavando" && (
+                <>
+                  <button
+                    onClick={() => mudarStatus(a.id, "pronto")}
+                    className="px-3 py-1 rounded bg-green-600 text-sm hover:bg-green-500"
+                  >
+                    Pronto
+                  </button>
+                  <button
+                    onClick={() => mudarStatus(a.id, "cancelado")}
+                    className="px-3 py-1 rounded bg-red-700 text-sm hover:bg-red-600"
+                  >
+                    Cancelar
+                  </button>
+                </>
               )}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <p>
-        <Link href="/caixa">Caixa do dia →</Link>
-      </p>
-    </section>
+              {(a.status === "pronto" || a.status === "pago" || a.status === "cancelado") && (
+                <span className="text-slate-500 text-sm">—</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {atendimentos.length === 0 && !erro && (
+        <p className="text-slate-400">Nenhum atendimento registrado.</p>
+      )}
+    </main>
   );
 }
