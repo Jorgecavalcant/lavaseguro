@@ -41,9 +41,11 @@ curl -X POST https://lavaseguro.tech42.com.br/api/v1/atendimentos \
 
 Sem token em mutação → **401**. Endpoints abertos: GETs, `/seed`, `/health`, `/payments/providers`, `/caixa/dia`, `/lavadores/{id}/pin-do-dia`, `/auth/pin`.
 
+> **Nota:** ao criar atendimento **sem** `lavador_id` no body, o atendimento é vinculado automaticamente ao **lavador autenticado** (token JWT ou PIN). Se `lavador_id` vier explícito no body, ele tem prioridade.
+
 ## Fluxo feliz
 
 1. `/entrar` com o PIN do dia (emite JWT).
-2. `/atender` → placa + serviço → criar atendimento (com Bearer).
+2. `/atender` → placa + serviço → criar atendimento (com Bearer; lavador = quem logou).
 3. Acompanhar no `/painel` e fechar no `/caixa`.
 4. Pagamento: provedor **manual** (demo).

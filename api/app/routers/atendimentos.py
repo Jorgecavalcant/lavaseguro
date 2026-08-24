@@ -44,21 +44,22 @@ def list_atendimentos(
 def create_atendimento(
     body: AtendimentoCreate,
     db: Session = Depends(get_db),
-    _lavador: dict = Depends(get_current_lavador),
+    current: dict = Depends(get_current_lavador),
 ):
     # Fluxo normal: só placa + serviço. Sem foto.
     servico = db.get(Servico, body.servico_id)
     if not servico or not servico.ativo:
         raise HTTPException(404, "Serviço não encontrado.")
-    if body.lavador_id is not None:
-        lavador = db.get(Lavador, body.lavador_id)
-        if not lavador or not lavador.ativo:
-            raise HTTPException(404, "Lavador não encontrado.")
+    # lavador efetivo: body.lavador_id se informado, senão o do token/PIN
+    lavador_id_efetivo = body.lavador_id if body.lavador_id is not None else current["lavador_id"]
+    lavador = db.get(Lavador, lavador_id_efetivo)
+    if not lavador or not lavador.ativo:
+        raise HTTPException(404, "Lavador não encontrado.")
     placa = body.placa.upper().replace(" ", "").replace("-", "")
     row = Atendimento(
         placa=placa,
         servico_id=body.servico_id,
-        lavador_id=body.lavador_id,
+        lavador_id=lavador_id_efetivo,
         status=StatusAtendimento.na_fila,
     )
     db.add(row)
