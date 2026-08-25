@@ -46,7 +46,7 @@ Este documento é o contrato técnico para implementação. O PRD de negócio es
 
 # Salto UX 2026-08
 
-Prioridade 2. **Sem código neste documento** — apenas especificação para ox-alpha.
+Prioridade 2. **Sem código neste documento** — apenas especificação para implementação.
 
 ## 0. Mapa de rotas alvo
 
@@ -294,7 +294,7 @@ Sem multi-tenant neste salto.
 - Dinheiro: `(centavos/100).toLocaleString("pt-BR", {style:"currency", currency:"BRL"})`
 - Placa: `toUpperCase()`, strip espaço/hífen antes do POST
 
-## 10. Matriz MUST → ox-alpha (checklist de aceite)
+## 10. Matriz MUST (checklist de aceite)
 
 Usar esta lista como Definition of Done do Salto UX. Cada item = demonstrável em `https://lavaseguro.tech42.com.br` (ou local `make up`).
 
@@ -350,7 +350,7 @@ Usar esta lista como Definition of Done do Salto UX. Cada item = demonstrável e
 - [ ] Nenhum app ou área do cliente final
 - [ ] Nenhuma foto no atender/painel/caixa
 
-## 11. Ordem de implementação sugerida (ox-alpha)
+## 11. Ordem de implementação sugerida
 
 1. Login PIN (remover ID + redirect home + logout) — desbloqueia o resto  
 2. Home gerencial (cards + atalhos)  

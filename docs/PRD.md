@@ -118,7 +118,7 @@ O MVP scaffold já registra fila e caixa via API, mas a **web não fecha o ciclo
 
 ## 3. Conselho MUST / SHOULD / WON'T
 
-### MUST (bloqueia aceite ox-alpha)
+### MUST (bloqueia aceite)
 
 | # | Item | Critério de aceite |
 |---|---|---|
@@ -173,7 +173,7 @@ O MVP scaffold já registra fila e caixa via API, mas a **web não fecha o ciclo
 
 | # | Sucesso | Como medir |
 |---|---|---|
-| 1 | Login em 1 campo → home em ≤ 3 toques | Teste manual ox-alpha |
+| 1 | Login em 1 campo → home em ≤ 3 toques | Teste manual |
 | 2 | Criar serviço e lavador sem Swagger | Checklist UI |
 | 3 | Ciclo completo: atender → lavando → pronto → pago manual → aparece no caixa | E2E manual |
 | 4 | Home mostra ≥ 4 cards: fila aberta, pagos hoje, bruto, comissão | Screenshot / QA |
@@ -202,7 +202,7 @@ O MVP scaffold já registra fila e caixa via API, mas a **web não fecha o ciclo
 ## 9. Dependências e próximo passo
 
 - **Dependência:** API já cobre a maior parte; SPEC detalha gaps (PATCH atendimento, métricas agregadas opcionais).
-- **Implementação:** ox-alpha (ou sniper) **somente após aprovação deste PRD pelo CEO**.
+- **Implementação:** somente após aprovação deste PRD pelo CEO.
 - **Fora desta entrega:** código — apenas docs (`PRD.md` + `SPEC.md`).
 
 ## 10. Aprovação
