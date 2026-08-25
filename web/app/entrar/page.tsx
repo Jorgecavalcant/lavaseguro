@@ -1,23 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginComPin } from "@/lib/api";
 
 export default function EntrarPage() {
   const router = useRouter();
-  const [lavadorId, setLavadorId] = useState("1");
+  const inputRef = useRef<HTMLInputElement>(null);
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
     setLoading(true);
     try {
-      await loginComPin(Number(lavadorId), pin);
-      router.push("/atender");
+      await loginComPin(pin.trim());
+      router.replace("/");
     } catch {
       setErro("PIN inválido ou expirado. Peça o PIN do dia ao responsável do ponto.");
     } finally {
@@ -32,28 +36,17 @@ export default function EntrarPage() {
           <p className="eyebrow">Acesso do dia</p>
           <h1>Entrar</h1>
           <p className="hint">
-            Use o PIN do dia do ponto. Muda todo dia — alta rotatividade, zero
-            senha pessoal.
+            Digite só o PIN do dia do ponto. Ele muda todo dia — sem senha pessoal.
           </p>
         </div>
 
         <label className="field">
-          ID do lavador
-          <input
-            value={lavadorId}
-            onChange={(e) => setLavadorId(e.target.value)}
-            placeholder="Ex.: 1"
-            inputMode="numeric"
-            autoComplete="username"
-            required
-          />
-        </label>
-
-        <label className="field">
           PIN do dia <span className="req">*</span>
           <input
+            ref={inputRef}
             value={pin}
             onChange={(e) => setPin(e.target.value)}
+            maxLength={8}
             type="password"
             placeholder="••••"
             inputMode="numeric"
@@ -68,7 +61,7 @@ export default function EntrarPage() {
           </p>
         )}
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || !pin.trim()}>
           {loading ? "Entrando…" : "Entrar"}
         </button>
       </form>

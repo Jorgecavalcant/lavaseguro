@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Space_Grotesk, Source_Sans_3 } from "next/font/google";
+import TopNav from "./components/TopNav";
+import { Archivo, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const archivo = Archivo({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-archivo",
   display: "swap",
   weight: ["500", "600", "700"],
 });
@@ -25,23 +25,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${spaceGrotesk.variable} ${sourceSans.variable}`}>
+    <html lang="pt-BR" className={`${archivo.variable} ${sourceSans.variable}`}>
       <body>
         <div className="shell">
-          <nav className="topnav" aria-label="Principal">
-            <Link href="/" className="brand">
-              <span className="brand-mark" aria-hidden>
-                LS
-              </span>
-              LavaSeguro
-            </Link>
-            <div className="nav-links">
-              <Link href="/entrar">Entrar</Link>
-              <Link href="/atender">Atender</Link>
-              <Link href="/painel">Painel</Link>
-              <Link href="/caixa">Caixa</Link>
-            </div>
-          </nav>
+          <TopNav />
           {children}
         </div>
       </body>
