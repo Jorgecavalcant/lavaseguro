@@ -230,6 +230,7 @@ def test_mutacao_sem_auth_401(client: TestClient):
 
     assert client.post("/api/v1/atendimentos", json={"placa": "AAA0000", "servico_id": sid}).status_code == 401
     assert client.patch("/api/v1/atendimentos/1/status", json={"status": "lavando"}).status_code == 401
+    assert client.patch("/api/v1/atendimentos/1", json={"placa": "BBB0000"}).status_code == 401
     assert client.post("/api/v1/payments/charge", json={"atendimento_id": 1, "meio": "pix"}).status_code == 401
     assert client.post("/api/v1/payments/stub", json={"atendimento_id": 1, "meio": "pix"}).status_code == 401
     assert client.post("/api/v1/servicos", json={"nome": "X", "preco_centavos": 100}).status_code == 401
@@ -248,3 +249,51 @@ def test_mutacao_sem_auth_401(client: TestClient):
     assert client.get("/api/v1/caixa/dia").status_code == 200
     assert client.post("/api/v1/seed").status_code == 200
     assert client.post("/api/v1/lavadores/1/pin-do-dia").status_code == 200
+
+
+def test_patch_atendimento_na_fila_edita_placa(client: TestClient, auth_headers: dict[str, str]):
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+    at = client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "EDT0001", "servico_id": sid},
+        headers=auth_headers,
+    ).json()
+    r = client.patch(
+        f"/api/v1/atendimentos/{at['id']}",
+        json={"placa": " edt-9999 "},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["placa"] == "EDT9999"
+    assert data["status"] == "na_fila"
+
+
+def test_patch_atendimento_nao_na_fila_422(client: TestClient, auth_headers: dict[str, str]):
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+    at = client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "LCK0001", "servico_id": sid},
+        headers=auth_headers,
+    ).json()
+    client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "lavando"}, headers=auth_headers)
+    r = client.patch(
+        f"/api/v1/atendimentos/{at['id']}",
+        json={"placa": "LCK0002"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 422
+
+
+def test_list_atendimentos_inclui_servico_nome(client: TestClient, auth_headers: dict[str, str]):
+    servicos = client.get("/api/v1/servicos").json()
+    sid = servicos[0]["id"]
+    client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "NOM0001", "servico_id": sid},
+        headers=auth_headers,
+    )
+    lista = client.get("/api/v1/atendimentos").json()
+    alvo = next(a for a in lista if a["placa"] == "NOM0001")
+    assert alvo["servico_nome"] == servicos[0]["nome"]
+    assert alvo["lavador_nome"] is not None

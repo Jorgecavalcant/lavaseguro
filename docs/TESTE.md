@@ -1,6 +1,6 @@
-# Como testar — LavaSeguro (2 min)
+# Como testar — LavaSeguro (3 min)
 
-**URL:** https://lavaseguro.tech42.com.br  
+**URL:** https://lavaseguro.tech42.com.br
 **Local:** `make up` → http://localhost:3000 · API http://localhost:8000/docs
 
 ## Seed + login (PIN do dia)
@@ -25,7 +25,7 @@ Resposta traz `pin` (4 dígitos) — **muda a cada dia**.
 
 ## Autenticação nas mutações
 
-Mutations (criar/mudar status de atendimento, cobrar pagamento, CRUD de serviços e lavadores, criar reclamação) **exigem** `Authorization: Bearer <jwt>` (ou `X-Pin` para compatibilidade).
+Mutations (criar/mudar status/editar atendimento, cobrar pagamento, CRUD de serviços e lavadores, criar reclamação) **exigem** `Authorization: Bearer <jwt>` (ou `X-Pin` para compatibilidade).
 
 Obter o token:
 
@@ -49,3 +49,19 @@ Sem token em mutação → **401**. Endpoints abertos: GETs, `/seed`, `/health`,
 2. `/atender` → placa + serviço → criar atendimento (com Bearer; lavador = quem logou).
 3. Acompanhar no `/painel` e fechar no `/caixa`.
 4. Pagamento: provedor **manual** (demo).
+
+## Fluxo Salto UX (web M1–M4)
+
+1. **Seed + PIN:** rodar `/seed`, gerar pin-do-dia (`{pin, qr_payload}`), entrar só com PIN em `/entrar`.
+2. **Home → Atender:** `/atender` exige JWT; abrir atendimento com placa + serviço ativo → formulário limpa a placa e o item aparece na mini-lista (sem foto).
+3. **Painel:** `/painel` mostra `#id`, placa, `servico_nome`, `lavador_nome` e badge por status.
+   - `na_fila`: **Editar** (inline placa + select serviço via PATCH só permitido na_fila) → **Lavando** → **Cancelar**.
+   - `lavando`: **Pronto** → **Cancelar**.
+   - `pronto`: selecionar meio (**pix**/**cartão**) → **Receber (manual)** via `POST /payments/charge {atendimento_id, meio, provider:"manual"}` → vira **pago**.
+   - `pago` / `cancelado`: read-only.
+4. **Serviços:** `/servicos` lista com ativos e inativos (`GET ?ativos=false`); criar com preço em R$ (converte p/ centavos), editar inline (PATCH), desativar (DELETE) e reativar (PATCH `{ativo:true}`).
+5. **Lavadores:** `/lavadores` CRUD completo; botão **Gerar PIN** destaca o PIN do dia e mostra o `qr_payload`.
+6. **Caixa:** `/caixa` com input date (default hoje) → `GET /caixa/dia?data=` mostra Bruto, Comissões, Líquido, Pagos, Ticket médio (bruto/pagos ou 0), tabela `por_lavador` e bloco Fila agora (contagens via `GET /atendimentos?data=`).
+7. **Configurações:** `/configuracoes` salva `lavaseguro_ponto_nome` no localStorage e define `lavaseguro_provider_default=manual`; link para `/lavadores`.
+
+Critério de aceite: todo o passo 3–7 sem erro visível, badge muda ao vivo após cada ação e caixa reflete o recebimento manual do dia corrente.

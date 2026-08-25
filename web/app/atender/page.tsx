@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, getToken } from "@/lib/api";
 
-type Servico = { id: number; nome: string; preco_centavos: number };
+type Servico = { id: number; nome: string; preco_centavos: number; ativo: boolean };
 type Atendimento = {
   id: number;
   placa: string;
   servico_id: number;
+  lavador_id: number | null;
   status: string;
+  servico_nome?: string;
+  lavador_nome?: string;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -36,6 +39,15 @@ export default function AtenderPage() {
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const carregarFila = useCallback(async () => {
+    try {
+      const rows = await apiFetch<Atendimento[]>("/api/v1/atendimentos");
+      setAtendimentos(rows);
+    } catch {
+      // silencioso — lista é best-effort
+    }
+  }, []);
+
   useEffect(() => {
     if (!getToken()) {
       router.replace("/entrar");
@@ -43,23 +55,14 @@ export default function AtenderPage() {
     }
     apiFetch<Servico[]>("/api/v1/servicos")
       .then((rows) => {
-        setServicos(rows);
-        if (rows.length > 0) setServicoId(String(rows[0].id));
+        const ativos = rows.filter((s) => s.ativo);
+        setServicos(ativos);
+        if (ativos.length > 0) setServicoId(String(ativos[0].id));
       })
       .catch(() => setErro("Não conseguimos carregar os serviços. Tente de novo."))
       .finally(() => setLoading(false));
-    carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function carregar() {
-    try {
-      const rows = await apiFetch<Atendimento[]>("/api/v1/atendimentos");
-      setAtendimentos(rows);
-    } catch {
-      // silencioso — lista é best-effort
-    }
-  }
+    carregarFila();
+  }, [router, carregarFila]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,21 +76,9 @@ export default function AtenderPage() {
         }),
       });
       setPlaca("");
-      await carregar();
+      await carregarFila();
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Não deu para abrir o atendimento.");
-    }
-  }
-
-  async function mudarStatus(id: number, status: string) {
-    try {
-      await apiFetch(`/api/v1/atendimentos/${id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      await carregar();
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : "Não deu para mudar o status.");
     }
   }
 
@@ -101,11 +92,10 @@ export default function AtenderPage() {
         </p>
       </header>
 
-      <form onSubmit={submit} className="card form-row">
+      <form onSubmit={submit} className="card form-stack">
         <label className="field">
           Placa <span className="req">*</span>
           <input
-            className="placa-input"
             value={placa}
             onChange={(e) => setPlaca(e.target.value.toUpperCase())}
             placeholder="ABC1D23"
@@ -129,7 +119,9 @@ export default function AtenderPage() {
             ))}
           </select>
         </label>
-        <button type="submit">Abrir atendimento</button>
+        <button type="submit" className="btn">
+          Abrir atendimento
+        </button>
       </form>
 
       {erro && (
@@ -142,41 +134,22 @@ export default function AtenderPage() {
 
       {!loading && (
         <ul className="queue-list">
-          {atendimentos.map((a) => (
+          {atendimentos.slice(0, 10).map((a) => (
             <li key={a.id} className="queue-item">
               <div className="meta">
                 <span className="id">#{a.id}</span>
                 <span className="placa">{a.placa}</span>
+                <span>{a.servico_nome ?? ""}</span>
                 <span className={`badge ${a.status}`}>
                   {STATUS_LABEL[a.status] ?? a.status}
                 </span>
-              </div>
-              <div className="queue-actions">
-                {a.status === "na_fila" && (
-                  <button
-                    type="button"
-                    className="warn"
-                    onClick={() => mudarStatus(a.id, "lavando")}
-                  >
-                    Iniciar lavagem
-                  </button>
-                )}
-                {a.status === "lavando" && (
-                  <button
-                    type="button"
-                    className="ok"
-                    onClick={() => mudarStatus(a.id, "pronto")}
-                  >
-                    Marcar pronto
-                  </button>
-                )}
               </div>
             </li>
           ))}
         </ul>
       )}
 
-      {!loading && atendimentos.length === 0 && (
+      {!loading && atendimentos.length === 0 && !erro && (
         <p className="empty">
           Nenhum atendimento na fila. Digite a placa para começar.
         </p>

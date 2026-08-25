@@ -77,6 +77,12 @@ class AtendimentoCreate(BaseModel):
     lavador_id: int | None = None
 
 
+class AtendimentoUpdate(BaseModel):
+    placa: str | None = Field(default=None, min_length=5, max_length=10)
+    servico_id: int | None = None
+    lavador_id: int | None = None
+
+
 class StatusUpdate(BaseModel):
     status: StatusLiteral
 
@@ -90,6 +96,8 @@ class AtendimentoOut(BaseModel):
     meio_pagamento: str | None
     created_at: datetime
     paid_at: datetime | None
+    servico_nome: str | None = None
+    lavador_nome: str | None = None
 
     model_config = {"from_attributes": True}
 
