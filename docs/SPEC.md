@@ -16,8 +16,10 @@ Este documento é o contrato técnico para implementação. O PRD de negócio es
   - Body: `{ "pin": "1234" }` — **sem** `lavador_id` (API já resolve lavador pelo PIN).
 - Config: `JWT_SECRET` (se vazio, herda `APP_SECRET`), `JWT_EXPIRE_MINUTES` (default 480), `JWT_ALGORITHM` (HS256).
 - Dependency `auth_jwt.get_current_lavador`: aceita `Authorization: Bearer <jwt>` OU `X-Pin` (compatibilidade).
-- Mutações protegidas: atendimentos (create/status), payments (charge), servicos CRUD, lavadores CRUD, reclamações criar.
-- Abertos (leitura/ops): GETs, seed, health, providers, caixa, pin-do-dia, auth/pin.
+- Mutações protegidas: atendimentos (create/status/edit), payments (charge), servicos CRUD, lavadores CRUD, **pin-do-dia**, reclamações criar.
+- Abertos (leitura/ops): GETs, seed (bootstrap do PIN do primeiro lavador), health, providers, caixa, auth/pin.
+- `pin-do-dia` é único **globalmente** por dia (não só por lavador) — gerar sorteia e tenta de novo em colisão (`app/pin_service.py`); `auth/pin` rejeita (403) PIN de lavador `ativo=false`.
+- `PATCH /atendimentos/{id}/status` não permite `pronto→pago` (422) — pagamento só via `POST /payments/charge`.
 
 ## Pagamentos (MVP — vigente)
 
@@ -194,7 +196,7 @@ GET /api/v1/caixa/dia/resumo?data=
 | GET | `/api/v1/lavadores/{id}` | — | Detalhe |
 | PATCH | `/api/v1/lavadores/{id}` | JWT | nome / comissao_pct / ativo |
 | DELETE | `/api/v1/lavadores/{id}` | JWT | soft-delete |
-| POST | `/api/v1/lavadores/{id}/pin-do-dia` | — | Gera/retorna PIN + qr_payload |
+| POST | `/api/v1/lavadores/{id}/pin-do-dia` | JWT | Gera/retorna PIN + qr_payload (único no dia) |
 
 ### UI
 

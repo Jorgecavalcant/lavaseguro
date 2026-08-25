@@ -15,7 +15,10 @@ router = APIRouter(prefix="/api/v1/atendimentos", tags=["atendimentos"])
 TRANSICOES = {
     StatusAtendimento.na_fila: {StatusAtendimento.lavando, StatusAtendimento.cancelado},
     StatusAtendimento.lavando: {StatusAtendimento.pronto, StatusAtendimento.cancelado},
-    StatusAtendimento.pronto: {StatusAtendimento.pago},
+    # pronto -> pago NÃO passa por aqui: só via POST /payments/charge, que
+    # registra o provedor/meio de pagamento. PATCH /status não pode "pular"
+    # o pagamento.
+    StatusAtendimento.pronto: set(),
     StatusAtendimento.pago: set(),
     StatusAtendimento.cancelado: set(),
 }
@@ -133,6 +136,11 @@ def update_status(
     novo = StatusAtendimento(body.status)
     if novo == row.status:
         return _enrich(row, db)
+    if novo == StatusAtendimento.pago:
+        raise HTTPException(
+            422,
+            "Pagamento não é feito por aqui. Use POST /payments/charge para registrar o recebimento.",
+        )
     permitidos = TRANSICOES.get(row.status, set())
     if novo not in permitidos:
         raise HTTPException(
@@ -140,8 +148,6 @@ def update_status(
             f"Não é possível ir de '{row.status.value}' para '{novo.value}'.",
         )
     row.status = novo
-    if novo == StatusAtendimento.pago:
-        row.paid_at = datetime.now()
     db.commit()
     db.refresh(row)
     return _enrich(row, db)

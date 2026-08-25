@@ -103,7 +103,10 @@ export default function ServicosPage() {
     }
   }
 
-  async function desativar(id: number) {
+  async function desativar(id: number, nome: string) {
+    if (!window.confirm(`Desativar "${nome}"? Ele deixa de aparecer para novos atendimentos.`)) {
+      return;
+    }
     setErro("");
     try {
       await apiFetch(`/api/v1/servicos/${id}`, { method: "DELETE" });
@@ -215,7 +218,7 @@ export default function ServicosPage() {
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => desativar(s.id)}
+                      onClick={() => desativar(s.id, s.nome)}
                     >
                       Desativar
                     </button>
