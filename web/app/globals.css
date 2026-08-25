@@ -507,3 +507,47 @@ table.data th {
 table.data tr:last-child td {
   border-bottom: none;
 }
+
+/* ---- dark theme (noite / pátio) ---- */
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
+[data-theme="dark"] {
+  --color-bg: #12161C;
+  --color-surface: #1A222C;
+  --color-brand: #E8EEF2;
+  --color-accent: #00C4A8;
+  --color-accent-hover: #00D9B8;
+  --color-text: #E8EEF2;
+  --color-muted: #9AA3AD;
+  --color-on-brand: #12161C;
+  --color-border: #2E3844;
+  --color-success: #3DCF7A;
+  --color-error: #F07868;
+  --bg: var(--color-bg);
+  --panel: var(--color-surface);
+  --brand: var(--color-brand);
+  --accent: var(--color-accent);
+  --shine: var(--color-accent);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --border: var(--color-border);
+  --danger: var(--color-error);
+  --ok: var(--color-success);
+  --input-bg: #0E1218;
+  --cta-ink: #12161C;
+  --shadow: 0 4px 16px rgba(0,0,0,.45);
+  --ring: 0 0 0 3px rgba(0, 196, 168, 0.35);
+}
+
+.theme-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  font-weight: 700;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
