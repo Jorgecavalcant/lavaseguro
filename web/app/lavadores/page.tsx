@@ -22,6 +22,7 @@ export default function LavadoresPage() {
   const [editNome, setEditNome] = useState("");
   const [editComissao, setEditComissao] = useState("");
   const [pins, setPins] = useState<Record<number, PinResposta>>({});
+  const [pinCopiadoId, setPinCopiadoId] = useState<number | null>(null);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -99,13 +100,30 @@ export default function LavadoresPage() {
     }
   }
 
-  async function desativar(id: number) {
+  async function desativar(id: number, nome: string) {
+    if (
+      !window.confirm(
+        `Desativar "${nome}"? Ele não vai mais conseguir entrar com o PIN do dia.`
+      )
+    ) {
+      return;
+    }
     setErro("");
     try {
       await apiFetch(`/api/v1/lavadores/${id}`, { method: "DELETE" });
       await carregar();
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Não deu para desativar o lavador.");
+    }
+  }
+
+  async function copiarPin(id: number, pin: string) {
+    try {
+      await navigator.clipboard.writeText(pin);
+      setPinCopiadoId(id);
+      setTimeout(() => setPinCopiadoId((cur) => (cur === id ? null : cur)), 2000);
+    } catch {
+      setErro("Não deu para copiar o PIN. Copie manualmente.");
     }
   }
 
@@ -222,7 +240,7 @@ export default function LavadoresPage() {
                       Editar
                     </button>
                     {l.ativo ? (
-                      <button type="button" className="danger" onClick={() => desativar(l.id)}>
+                      <button type="button" className="danger" onClick={() => desativar(l.id, l.nome)}>
                         Desativar
                       </button>
                     ) : (
@@ -235,7 +253,13 @@ export default function LavadoresPage() {
                     <div className="card form-stack" style={{ marginTop: "0.75rem" }}>
                       <p>
                         <strong>PIN do dia:</strong>{" "}
-                        <span className="data">{pins[l.id].pin}</span>
+                        <span className="data">{pins[l.id].pin}</span>{" "}
+                        <button
+                          type="button"
+                          onClick={() => copiarPin(l.id, pins[l.id].pin)}
+                        >
+                          {pinCopiadoId === l.id ? "Copiado!" : "Copiar PIN"}
+                        </button>
                       </p>
                       <p className="muted">
                         QR payload: <code>{pins[l.id].qr_payload}</code>

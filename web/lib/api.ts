@@ -69,7 +69,14 @@ export async function apiFetch<T = unknown>(
 
   const res = await fetch(apiBase() + path, { ...init, headers });
   if (!res.ok) {
-    throw new Error(`API ${res.status}: ${await res.text()}`);
+    const body = await res.text();
+    if (res.status === 401) {
+      clearSession();
+      if (typeof window !== "undefined") {
+        window.location.href = "/entrar";
+      }
+    }
+    throw new Error(`API ${res.status}: ${body}`);
   }
   return res.json() as Promise<T>;
 }

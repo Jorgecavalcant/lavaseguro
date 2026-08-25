@@ -27,11 +27,13 @@ def client():
 
 @pytest.fixture
 def auth_headers(client: TestClient) -> dict[str, str]:
-    """Seed -> Lavador Demo -> pin-do-dia -> /auth/pin -> Bearer token."""
-    client.post("/api/v1/seed")
-    lavs = client.get("/api/v1/lavadores").json()
-    demo = next(l for l in lavs if l["nome"] == "Lavador Demo")
-    pin = client.post(f"/api/v1/lavadores/{demo['id']}/pin-do-dia").json()["pin"]
+    """Seed (bootstrap_pin do Lavador Demo, aberto) -> /auth/pin -> Bearer token.
+
+    /lavadores/{id}/pin-do-dia agora exige auth; o primeiro acesso vem do PIN
+    de bootstrap que o próprio /seed garante.
+    """
+    seed = client.post("/api/v1/seed").json()
+    pin = seed["bootstrap_pin"]
     r = client.post("/api/v1/auth/pin", json={"pin": pin})
     assert r.status_code == 200
     token = r.json()["access_token"]
@@ -54,7 +56,7 @@ def test_fluxo_atendimento_sem_foto(client: TestClient, auth_headers: dict[str, 
         json={"nome": "João", "comissao_pct": 40},
         headers=auth_headers,
     ).json()
-    pin = client.post(f"/api/v1/lavadores/{lav['id']}/pin-do-dia").json()
+    pin = client.post(f"/api/v1/lavadores/{lav['id']}/pin-do-dia", headers=auth_headers).json()
     assert len(pin["pin"]) == 4
     assert pin["qr_payload"].startswith("lavaseguro://pin/")
 
@@ -240,6 +242,7 @@ def test_mutacao_sem_auth_401(client: TestClient):
     assert client.patch("/api/v1/lavadores/1", json={"nome": "Z"}).status_code == 401
     assert client.delete("/api/v1/lavadores/1").status_code == 401
     assert client.post("/api/v1/reclamacoes", json={"atendimento_id": 1, "texto": "t"}).status_code == 401
+    assert client.post("/api/v1/lavadores/1/pin-do-dia").status_code == 401
 
     # Abertos continuam acessíveis sem auth
     assert client.get("/health").status_code == 200
@@ -248,7 +251,6 @@ def test_mutacao_sem_auth_401(client: TestClient):
     assert client.get("/api/v1/payments/providers").status_code == 200
     assert client.get("/api/v1/caixa/dia").status_code == 200
     assert client.post("/api/v1/seed").status_code == 200
-    assert client.post("/api/v1/lavadores/1/pin-do-dia").status_code == 200
 
 
 def test_patch_atendimento_na_fila_edita_placa(client: TestClient, auth_headers: dict[str, str]):
@@ -297,3 +299,66 @@ def test_list_atendimentos_inclui_servico_nome(client: TestClient, auth_headers:
     alvo = next(a for a in lista if a["placa"] == "NOM0001")
     assert alvo["servico_nome"] == servicos[0]["nome"]
     assert alvo["lavador_nome"] is not None
+
+
+def test_pin_do_dia_exige_auth(client: TestClient, auth_headers: dict[str, str]):
+    """Sem token, pin-do-dia é 401; com token, gera/retorna o PIN normalmente."""
+    lav = client.post(
+        "/api/v1/lavadores",
+        json={"nome": "Sem Token", "comissao_pct": 30},
+        headers=auth_headers,
+    ).json()
+    assert client.post(f"/api/v1/lavadores/{lav['id']}/pin-do-dia").status_code == 401
+    r = client.post(f"/api/v1/lavadores/{lav['id']}/pin-do-dia", headers=auth_headers)
+    assert r.status_code == 200
+    assert len(r.json()["pin"]) == 4
+
+
+def test_pin_do_dia_unico_globalmente(client: TestClient, auth_headers: dict[str, str]):
+    """Dois lavadores nunca recebem o mesmo PIN no mesmo dia."""
+    a = client.post(
+        "/api/v1/lavadores", json={"nome": "Ana", "comissao_pct": 30}, headers=auth_headers
+    ).json()
+    b = client.post(
+        "/api/v1/lavadores", json={"nome": "Bia", "comissao_pct": 30}, headers=auth_headers
+    ).json()
+    pin_a = client.post(f"/api/v1/lavadores/{a['id']}/pin-do-dia", headers=auth_headers).json()["pin"]
+    pin_b = client.post(f"/api/v1/lavadores/{b['id']}/pin-do-dia", headers=auth_headers).json()["pin"]
+    assert pin_a != pin_b
+    # gerar de novo no mesmo dia é idempotente (retorna o mesmo PIN)
+    pin_a2 = client.post(f"/api/v1/lavadores/{a['id']}/pin-do-dia", headers=auth_headers).json()["pin"]
+    assert pin_a2 == pin_a
+
+
+def test_login_rejeita_lavador_inativo(client: TestClient, auth_headers: dict[str, str]):
+    lav = client.post(
+        "/api/v1/lavadores",
+        json={"nome": "Vai Sair", "comissao_pct": 30},
+        headers=auth_headers,
+    ).json()
+    pin = client.post(f"/api/v1/lavadores/{lav['id']}/pin-do-dia", headers=auth_headers).json()["pin"]
+    client.delete(f"/api/v1/lavadores/{lav['id']}", headers=auth_headers)
+    r = client.post("/api/v1/auth/pin", json={"pin": pin})
+    assert r.status_code == 403
+
+
+def test_patch_status_pronto_para_pago_bloqueado(client: TestClient, auth_headers: dict[str, str]):
+    """PATCH /status não pode pular o pagamento — só POST /payments/charge paga."""
+    sid = client.get("/api/v1/servicos").json()[0]["id"]
+    at = client.post(
+        "/api/v1/atendimentos",
+        json={"placa": "BLK0001", "servico_id": sid},
+        headers=auth_headers,
+    ).json()
+    client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "lavando"}, headers=auth_headers)
+    client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "pronto"}, headers=auth_headers)
+    r = client.patch(f"/api/v1/atendimentos/{at['id']}/status", json={"status": "pago"}, headers=auth_headers)
+    assert r.status_code == 422
+
+    pay = client.post(
+        "/api/v1/payments/charge",
+        json={"atendimento_id": at["id"], "meio": "pix", "provider": "manual"},
+        headers=auth_headers,
+    )
+    assert pay.status_code == 200
+    assert pay.json()["status"] == "pago"

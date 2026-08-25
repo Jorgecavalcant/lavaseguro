@@ -24,10 +24,9 @@ def client():
 
 @pytest.fixture
 def auth_headers(client: TestClient) -> dict[str, str]:
-    client.post("/api/v1/seed")
-    lavs = client.get("/api/v1/lavadores").json()
-    demo = next(l for l in lavs if l["nome"] == "Lavador Demo")
-    pin = client.post(f"/api/v1/lavadores/{demo['id']}/pin-do-dia").json()["pin"]
+    """Bootstrap via /seed (PIN aberto do Lavador Demo) -> JWT."""
+    seed = client.post("/api/v1/seed").json()
+    pin = seed["bootstrap_pin"]
     token = client.post("/api/v1/auth/pin", json={"pin": pin}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 

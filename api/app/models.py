@@ -34,7 +34,12 @@ class Lavador(Base):
 
 class PinDia(Base):
     __tablename__ = "pins_dia"
-    __table_args__ = (UniqueConstraint("lavador_id", "data", name="uq_pin_lavador_dia"),)
+    __table_args__ = (
+        UniqueConstraint("lavador_id", "data", name="uq_pin_lavador_dia"),
+        # PIN único globalmente por dia — /auth/pin busca só por data+pin,
+        # então dois lavadores com o mesmo PIN no mesmo dia tornariam o login ambíguo.
+        UniqueConstraint("data", "pin", name="uq_pin_dia_global"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     lavador_id: Mapped[int] = mapped_column(ForeignKey("lavadores.id"), nullable=False)

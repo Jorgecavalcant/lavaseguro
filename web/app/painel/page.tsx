@@ -31,6 +31,12 @@ function brl(centavos: number): string {
   });
 }
 
+function hojeISO(): string {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+const STATUS_ABERTOS = new Set(["na_fila", "lavando", "pronto"]);
+
 export default function PainelPage() {
   const router = useRouter();
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
@@ -41,10 +47,11 @@ export default function PainelPage() {
   const [editPlaca, setEditPlaca] = useState("");
   const [editServicoId, setEditServicoId] = useState("");
   const [meioPagamento, setMeioPagamento] = useState<Record<number, string>>({});
+  const [mostrarTodos, setMostrarTodos] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
-      const rows = await apiFetch<Atendimento[]>("/api/v1/atendimentos");
+      const rows = await apiFetch<Atendimento[]>(`/api/v1/atendimentos?data=${hojeISO()}`);
       setAtendimentos(rows);
       setErro("");
     } catch (err) {
@@ -55,6 +62,10 @@ export default function PainelPage() {
       setLoading(false);
     }
   }, []);
+
+  const visiveis = mostrarTodos
+    ? atendimentos
+    : atendimentos.filter((a) => STATUS_ABERTOS.has(a.status));
 
   useEffect(() => {
     if (!getToken()) {
@@ -129,12 +140,22 @@ export default function PainelPage() {
   return (
     <section>
       <header className="page-head">
-        <p className="eyebrow">Fila ao vivo</p>
+        <p className="eyebrow">Fila ao vivo · hoje</p>
         <h1>Painel</h1>
         <p className="muted" style={{ margin: 0 }}>
           Status na ponta do polegar: fila → lavando → pronto → pago.
         </p>
       </header>
+
+      <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem", maxWidth: "fit-content" }}>
+        <input
+          type="checkbox"
+          checked={mostrarTodos}
+          onChange={(e) => setMostrarTodos(e.target.checked)}
+          aria-label="Mostrar também pagos e cancelados de hoje"
+        />
+        Mostrar também pagos e cancelados de hoje
+      </label>
 
       {erro && (
         <p className="err" role="alert">
@@ -146,7 +167,7 @@ export default function PainelPage() {
 
       {!loading && (
         <ul className="queue-list">
-          {atendimentos.map((a) => (
+          {visiveis.map((a) => (
             <li key={a.id} className="queue-item">
               <div className="meta">
                 <span className="id">#{a.id}</span>
@@ -269,8 +290,12 @@ export default function PainelPage() {
         </ul>
       )}
 
-      {!loading && atendimentos.length === 0 && !erro && (
-        <p className="empty">Nenhum atendimento registrado. Abra um em Atender.</p>
+      {!loading && visiveis.length === 0 && !erro && (
+        <p className="empty">
+          {atendimentos.length === 0
+            ? "Nenhum atendimento hoje ainda. Abra um em Atender."
+            : "Fila vazia — tudo pago ou cancelado hoje. Marque \"Mostrar também pagos e cancelados\" para ver."}
+        </p>
       )}
     </section>
   );

@@ -1,7 +1,7 @@
 """PIN → JWT → rota protegida.
 
-Rotas são abertas (sem 401); aqui validamos apenas a emissão e decodificação
-do JWT de operador e o uso do Bearer em GET.
+`/lavadores/{id}/pin-do-dia` exige auth; aqui usamos o bootstrap_pin que
+`/seed` garante para permitir o primeiro login sem token (ver docs/TESTE.md).
 """
 
 from __future__ import annotations
@@ -22,9 +22,8 @@ def pin_criado():
         client.post("/api/v1/seed")
         lavadores = client.get("/api/v1/lavadores").json()
     lavador_id = lavadores[0]["id"]
-    r = client.post(f"/api/v1/lavadores/{lavador_id}/pin-do-dia")
-    assert r.status_code == 200
-    return {"lavador_id": lavador_id, "pin": r.json()["pin"]}
+    seed = client.post("/api/v1/seed").json()
+    return {"lavador_id": lavador_id, "pin": seed["bootstrap_pin"]}
 
 
 @pytest.fixture(scope="module")
