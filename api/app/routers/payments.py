@@ -55,7 +55,7 @@ def charge(
 
     row.status = StatusAtendimento.pago
     row.meio_pagamento = f"{body.meio}:{result.provider}"
-    row.paid_at = datetime.utcnow()
+    row.paid_at = datetime.now()
     db.commit()
     db.refresh(row)
     return row
